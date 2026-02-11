@@ -1,0 +1,18 @@
+# 创建 conda 环境
+conda create -n mcs python==3.8
+conda activate mcs
+
+# 安装 PyTorch（GPU 可选）与依赖
+# 去这个链接手动生成 pip 指令https://pytorch.org/get-started/locally/
+# 首先，用 nvidia-smi 检查 CUDA 版本是否超过12.1，否则更新显卡驱动
+pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu121
+
+# gym 0.21.0 的元数据与 pip>=24.1 不兼容，需先降级 pip
+# gym 0.21 与新版 setuptools 不兼容，需先降级再安装依赖
+D:\Coding\Miniconda3\envs\mcs\python.exe -m pip install pip<24.1
+pip install "setuptools<58"
+pip install -r requirements.txt
+
+回退movingpandas版本
+git checkout a6bf31757df2f1ce13209b107dfc64c379548fc6
+python setup.py develop

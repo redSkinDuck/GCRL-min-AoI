@@ -111,7 +111,7 @@ class RGL(nn.Module):
                 next_H = relu(torch.matmul(torch.matmul(normalized_A, H), self.Ws[i]))
 
             if self.skip_connection:
-                next_H += H
+                next_H = next_H + H  # 避免 inplace 操作，否则 backward 会报错
             H = next_H
 
         return next_H

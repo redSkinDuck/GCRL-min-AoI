@@ -71,6 +71,16 @@ class CrowdSim(gym.Env):
         self.update_human_timelist = np.zeros([self.config.env.num_timestep, ])
         self.data_collection = 0
 
+        # gym 0.21 要求必须定义 action_space 和 observation_space
+        one_uav = np.array(self.config.env.one_uav_action_space, dtype=np.float32)
+        low = np.tile(one_uav.min(axis=0) * 1.5, (self.robot_num, 1))
+        high = np.tile(one_uav.max(axis=0) * 1.5, (self.robot_num, 1))
+        self.action_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
+        n_obs = self.robot_num * 4 + self.human_num * 4  # RobotState 4, HumanState 4
+        self.observation_space = gym.spaces.Box(
+            low=0.0, high=1.0, shape=(n_obs,), dtype=np.float32
+        )
+
     def set_agent(self, agent):
         self.agent = agent
 

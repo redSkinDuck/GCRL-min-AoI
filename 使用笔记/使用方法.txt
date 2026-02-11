@@ -1,0 +1,42 @@
+打开 terminal 后，首先的首先，两件大事
+
+1. 移动到项目所在文件夹
+cd ~/GCRL-min-AoI
+
+2. 调整conda环境
+conda activate mcs
+
+cursor 每次要打开的位置在
+屏幕左上角 File-Open folder，然后选
+用户-Yueqi Chen-GCRL-min-AoI
+
+===================================
+
+训练
+python train_our_policy.py --overwrite --output_dir logs/debug
+
+查看结果
+注意新执行一次后会覆盖以前的日志，所以注意移走现有的文件
+logs\debug\output.log
+
+===================================
+
+测试
+python test_our_policy.py --vis_html --plot_loop --moving_line --model_dir logs/debug
+查看结果
+logs\debug\output.log
+
+===================================
+
+gpu 执行
+最后加一个： --gpu --gpu_id 0
+
+===================================
+
+查看 cursor 开销
+https://cursor.com/cn/dashboard
+
+===================================
+
+调整参数
+configs\config.py
