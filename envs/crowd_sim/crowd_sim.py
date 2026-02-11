@@ -272,7 +272,7 @@ class CrowdSim(gym.Env):
                         "timestamp": timestamp_list, "aoi": aoi_list, "energy": energy_list}
                 robot_df = pd.DataFrame(data)
                 robot_df['t'] = pd.to_datetime(robot_df['timestamp'], unit='s')  # s表示时间戳转换
-                mixed_df = mixed_df.append(robot_df)
+                mixed_df = pd.concat([mixed_df, robot_df], ignore_index=True)  # pandas 2.0+ 无 append
 
             # ------------------------------------------------------------------------------------
             # 建立moving pandas轨迹，也可以选择调用高级API继续清洗轨迹。
