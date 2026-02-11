@@ -78,6 +78,8 @@ def main(args):
 
     # configure environment
     env = gym.make('CrowdSim-v0')
+    from envs import disable_render_order_check
+    disable_render_order_check(env)
     agent = Agent()
     human_df = env.human_df
 

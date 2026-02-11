@@ -155,8 +155,8 @@ class BasePolicyConfig(object):
 class BaseTrainConfig(object):
     train = Config()
     train.rl_learning_rate = 0.001
-    train.num_episodes = 500  # TODO:500
-    train.warmup_episodes = 100  # TODO: 100, exploration
+    train.num_episodes = 5  # TODO:500
+    train.warmup_episodes = 1  # TODO: 100, exploration
     train.evaluate_episodes = 1  # TODO: 10? 1?
     train.sample_episodes = 1
 

@@ -25,16 +25,17 @@ class Explorer(object):
         update_human_coverage_list=[]
 
         for ep_i in range(k):
-            state = self.env.unwrapped.reset(phase)
+            # 必须对包装后的 env 调用 reset/step，否则 gym OrderEnforcing 会禁止 render()
+            state = self.env.reset(phase=phase)
             done = False
             states = []
             actions = []
             rewards = []
             returns = []
             while not done:
-                action = self.robot.act(state, self.env.current_timestep)
+                action = self.robot.act(state, self.env.unwrapped.current_timestep)
                 # print(self.env.start_timestamp+self.env.current_timestep*self.env.step_time,action)
-                state, reward, done, info = self.env.unwrapped.step(action)  # 东西存在info里
+                state, reward, done, info = self.env.step(action)  # 东西存在info里
                 states.append(self.robot.policy.last_state)
                 actions.append(action)
                 rewards.append(reward)
