@@ -134,6 +134,47 @@ class BaseEnvConfig(object):
         pass
 
 
+# 多数据集表格对比：在创建 env 前调用 set_env_dataset('Purdue'|'NCSU'|'KAIST')，CrowdSim 会在 __init__ 中调用 _apply_dataset_env()
+_ENV_DATASET = 'Purdue'
+
+
+def set_env_dataset(name):
+    global _ENV_DATASET
+    _ENV_DATASET = name
+
+
+def _apply_dataset_env():
+    """根据 _ENV_DATASET 覆盖 env 配置，供 CrowdSim 在 __init__ 时调用。"""
+    global _ENV_DATASET
+    e = BaseEnvConfig.env
+    if _ENV_DATASET == 'Purdue':
+        pass  # 默认已是 Purdue
+    elif _ENV_DATASET == 'NCSU':
+        e.lower_left = [-78.6988, 35.7651]
+        e.upper_right = [-78.6628, 35.7896]
+        e.nlon = 3600
+        e.nlat = 2450
+        e.human_num = 33
+        e.dataset_dir = 'envs/crowd_sim/dataset/NCSU/33 users.csv'
+        e.sensing_range = 220
+        e.one_uav_action_space = [[0, 0], [300, 0], [-300, 0], [0, 300], [0, -300], [210, 210], [210, -210], [-210, 210], [-210, -210]]
+        e.max_x_distance = 3255.4913305859623
+        e.max_y_distance = 2718.3945272795013
+        e.density_of_human_blockers = 30000 / e.max_x_distance / e.max_y_distance
+    elif _ENV_DATASET == 'KAIST':
+        e.lower_left = [127.3475, 36.3597]
+        e.upper_right = [127.3709, 36.3793]
+        e.nlon = 2340
+        e.nlat = 1960
+        e.human_num = 92
+        e.dataset_dir = 'envs/crowd_sim/dataset/KAIST/92 users.csv'
+        e.sensing_range = 220
+        e.one_uav_action_space = [[0, 0], [300, 0], [-300, 0], [0, 300], [0, -300], [210, 210], [210, -210], [-210, 210], [-210, -210]]
+        e.max_x_distance = 2100.207579392558
+        e.max_y_distance = 2174.930950809533
+        e.density_of_human_blockers = 30000 / e.max_x_distance / e.max_y_distance
+
+
 class BasePolicyConfig(object):
     rl = Config()
     rl.gamma = 0.95
@@ -155,22 +196,22 @@ class BasePolicyConfig(object):
 class BaseTrainConfig(object):
     train = Config()
     train.rl_learning_rate = 0.001
-    train.num_episodes = 5  # TODO:500
-    train.warmup_episodes = 1  # TODO: 100, exploration
-    train.evaluate_episodes = 1  # TODO: 10? 1?
+    train.num_episodes = 200  # 完整训练
+    train.warmup_episodes = 20  # 预热轮数，先收集经验再训练
+    train.evaluate_episodes = 1
     train.sample_episodes = 1
 
     # number of episodes sampled in one training episode
-    train.target_update_interval = 30  # TODO:30
-    train.evaluation_interval = 100  # TODO:100
-    train.checkpoint_interval = 100
-    train.num_batches = 100  # TODO:100, number of batches to train at the end of training episode
+    train.target_update_interval = 30  # 每 30 episode 更新 target 网络
+    train.evaluation_interval = 10   # 每 10 episode 做一次验证
+    train.checkpoint_interval = 10  # 每 10 episode 可保存最佳验证模型
+    train.num_batches = 100
 
     # the memory pool can roughly store 2K episodes, total size = episodes * 50
     train.capacity = 50000
     train.epsilon_start = 0.5
     train.epsilon_end = 0.1
-    train.epsilon_decay = 400
+    train.epsilon_decay = 150  # 前 150 episode 内从 start 衰减到 end，后 50 episode 保持 0.1
 
     trainer = Config()
     trainer.batch_size = 128

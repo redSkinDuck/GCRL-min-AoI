@@ -1,4 +1,5 @@
 import logging
+import time
 import matplotlib.pyplot as plt
 import torch
 
@@ -13,6 +14,7 @@ class Explorer(object):
         self.gamma = gamma
         self.target_policy = target_policy
         self.statistics = None
+        self.step_time_ms = None  # 每步决策平均耗时 (ms)，用于 Table II
 
     # @profile
     def run_k_episodes(self, k, phase, args, plot_index, update_memory=False):
@@ -23,6 +25,7 @@ class Explorer(object):
         mean_energy_consumption_list = []
         collected_data_amount_list=[]
         update_human_coverage_list=[]
+        step_times_sec = []  # 每步 act() 耗时 (秒)
 
         for ep_i in range(k):
             # 必须对包装后的 env 调用 reset/step，否则 gym OrderEnforcing 会禁止 render()
@@ -33,7 +36,9 @@ class Explorer(object):
             rewards = []
             returns = []
             while not done:
+                t0 = time.perf_counter()
                 action = self.robot.act(state, self.env.unwrapped.current_timestep)
+                step_times_sec.append(time.perf_counter() - t0)
                 # print(self.env.start_timestamp+self.env.current_timestep*self.env.step_time,action)
                 state, reward, done, info = self.env.step(action)  # 东西存在info里
                 states.append(self.robot.policy.last_state)
@@ -80,6 +85,7 @@ class Explorer(object):
         self.statistics = average(cumulative_rewards), average(average_return_list), average(mean_aoi_list), \
                           average(mean_energy_consumption_list), average(collected_data_amount_list), \
                           average(update_human_coverage_list)
+        self.step_time_ms = (average(step_times_sec) * 1000.0) if step_times_sec else 0.0
 
         return self.statistics
 

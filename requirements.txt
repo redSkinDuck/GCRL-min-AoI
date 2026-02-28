@@ -13,5 +13,5 @@ panel
 pyviz-comms
 selenium
 pandas
-geopandas
+geopandas>=0.10,<1.1
 tensorboard

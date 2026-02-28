@@ -1,0 +1,91 @@
+打开 terminal 后，首先的首先，两件大事
+
+1. 移动到项目所在文件夹
+cd ~/GCRL-min-AoI
+
+2. 调整conda环境
+conda activate mcs
+
+cursor 每次要打开的位置在
+屏幕左上角 File-Open folder，然后选
+用户-Yueqi Chen-GCRL-min-AoI
+
+===================================
+
+训练（当前配置：50 episode，每 10 episode 验证/保存）
+python train_our_policy.py --config configs/infocom_benchmark/mp_separate_dp.py --output_dir logs/debug --overwrite
+
+训练阶段可视化
+（1）实时看曲线：另开一个 terminal，执行
+    tensorboard --logdir logs/debug
+    然后在浏览器打开 http://localhost:6006
+    可看 train/reward、mean_human_aoi、coverage、loss 等随 episode 变化
+（2）训练结束后生成曲线图 PNG：
+    python plot_training_curves.py --logdir logs/debug
+    会在 logs/debug 下生成 training_metrics.png、training_loss.png 等
+
+查看结果
+注意新执行一次后会覆盖以前的日志，所以注意移走现有的文件
+logs\debug\output.log
+
+===================================
+
+测试
+python test_our_policy.py --vis_html --plot_loop --moving_line --model_dir logs/debug
+查看结果
+logs\debug\output.log
+测试结束后会自动生成：our_policy_users_and_uav_trajectories.png（黑点=dataset 里 mobile user 位置，彩色线=每个 UAV 轨迹）
+
+===================================
+
+策略对比图（Tree / Diffusion / Random / 其他 baseline）
+（1）只对比 Our Policy vs Random（不需要重训）：
+    python run_comparison.py -m logs/debug --output_dir logs/comparison
+（2）默认会加三个 rule-based baseline：Stay、Greedy (AoI)、Nearest High AoI；不想加可：
+    python run_comparison.py -m logs/debug --output_dir logs/comparison --baselines
+（3）三路对比 Tree / Diffusion / Random（可选）：
+    先训练 Diffusion（BC）：已有 best_val.pth 后运行
+    python train_diffusion_bc.py -m logs/debug --output_dir logs/debug --steps 2000
+    再把生成的 best_val_with_diffusion.pth 覆盖或替换到模型目录，然后：
+    python run_comparison.py -m logs/debug --output_dir logs/comparison --compare_diffusion
+    图会多出 “Our Policy (Tree)” 和 “Our Policy (Diffusion)” 两根柱子
+
+论文风格两张表（TABLE I 性能指标 + TABLE II 耗时）
+    Random / Tree / Diffusion 在 Purdue、NCSU、KAIST 上的 R(AoI)、ψ(Coverage)、ρ(Energy)、ς(Data) 与每步耗时(ms)：
+    python run_table_comparison.py -m logs/debug --output_dir logs/comparison --compare_diffusion
+    多数据集（默认仅 Purdue，可加 NCSU、KAIST）：
+    python run_table_comparison.py -m logs/debug --output_dir logs/comparison --compare_diffusion --datasets Purdue NCSU KAIST --n_episodes 3
+    会生成 table_comparison_table1.tex / table2.tex（LaTeX）、table1.csv / table2.csv、table1.png / table2.png
+
+想让 Diffusion 更好一点：
+    （1）离散化：config 里 diffusion_discretize_output = True（默认已开），执行动作与 Tree 同离散空间。
+    （2）多数据 + 多训：python train_diffusion_bc.py -m logs/debug --steps 15000 --epochs 200
+    （3）DAgger（减轻 OOD）：python train_diffusion_bc.py -m logs/debug --dagger_rounds 3 --steps 5000 --dagger_epsilon 0.5
+    （4）推理多采样：config 里 diffusion_num_samples 改为 64 或 128。
+    详细说明与尝试顺序：见 docs/improve_diffusion.md；原因分析见 docs/diffusion_vs_tree_analysis.md
+
+===================================
+
+是否要重新训练
+- 只跑现有 Our Policy vs Random：不用重训，直接 run_comparison 即可。
+- 要对比 Diffusion：需先跑 train_diffusion_bc.py 用树搜索策略收集数据训 Diffusion，再 run_comparison --compare_diffusion。
+
+===================================
+
+gpu 执行
+最后加一个： --gpu --gpu_id 0
+
+===================================
+
+查看 cursor 开销
+https://cursor.com/cn/dashboard
+
+===================================
+
+调整参数
+configs\config.py
+
+===================================
+
+问 ai 怎么解决问题
+（复制报错信息）解释以上报错的原因，尝试修复，并解释为何如此修复

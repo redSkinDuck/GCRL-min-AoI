@@ -75,6 +75,7 @@ def main(args):
         logging.info('Using device: cpu')
 
     writer = SummaryWriter(log_dir=args.output_dir)
+    logging.info('训练曲线将写入 TensorBoard。实时查看请另开终端执行: tensorboard --logdir=%s', args.output_dir)
 
     # configure environment
     env = gym.make('CrowdSim-v0')
@@ -155,6 +156,7 @@ def main(args):
         explorer.run_k_episodes(k=sample_episodes, phase='train', args=args, update_memory=True, plot_index=-1)
 
         explorer.log('train', episode)
+        writer.add_scalar('train/epsilon', epsilon, episode)
         trainer.optimize_batch(num_batches, episode)
         logging.info(f"ep {episode} training is finished. epsilon={epsilon}\n")
 
@@ -182,11 +184,16 @@ def main(args):
             save_every_checkpoint_rl_weight_file = rl_weight_file.split('.')[0] + '_' + str(current_checkpoint) + '.pth'
             policy.save_model(save_every_checkpoint_rl_weight_file)
 
-    # # test with the best val model
+    # 保存模型：若有验证最佳则保存 best_val.pth，并始终保存当前模型为 rl_model.pth（便于短训练后测试）
     if best_val_model is not None:
         policy.load_state_dict(best_val_model)
         torch.save(best_val_model, os.path.join(args.output_dir, 'best_val.pth'))
         logging.info('Save the best val model with the reward: {}'.format(best_val_reward))
+    else:
+        logging.warning('未进行过验证或 num_episodes 过小，将当前模型保存为 best_val.pth 以便测试。')
+        torch.save(policy.get_state_dict(), os.path.join(args.output_dir, 'best_val.pth'))
+    policy.save_model(rl_weight_file)
+    logging.info('Save the current/final model to %s', rl_weight_file)
 
 
 if __name__ == '__main__':

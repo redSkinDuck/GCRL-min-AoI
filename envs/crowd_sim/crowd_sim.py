@@ -27,6 +27,8 @@ class CrowdSim(gym.Env):
         self.current_timestep = None
         self.phase = None
 
+        from configs.config import _apply_dataset_env
+        _apply_dataset_env()
         self.config = BaseEnvConfig()
 
         self.human_num = self.config.env.human_num
@@ -242,9 +244,17 @@ class CrowdSim(gym.Env):
     def render(self, mode='traj', output_file=None, plot_loop=False, moving_line=False):
         # -------------------------------------------------------------------
         if mode == 'html':
-            import geopandas as gpd
-            import movingpandas as mpd
-            from movingpandas.geometry_utils import measure_distance_geodesic
+            try:
+                import geopandas as gpd
+                import movingpandas as mpd
+                from movingpandas.geometry_utils import measure_distance_geodesic
+            except TypeError as e:
+                if "unsupported operand type(s) for |" in str(e):
+                    raise RuntimeError(
+                        "geopandas 与 Python 3.8 不兼容（使用了 3.10+ 的类型语法）。"
+                        "请执行: pip install 'geopandas>=0.10,<1.1'，或使用 Python 3.10+。"
+                    ) from e
+                raise
             max_distance_x = measure_distance_geodesic(Point(self.lower_left[0], self.lower_left[1]),
                                                        Point(self.upper_right[0], self.lower_left[1]))
             max_distance_y = measure_distance_geodesic(Point(self.lower_left[0], self.lower_left[1]),
@@ -294,10 +304,10 @@ class CrowdSim(gym.Env):
             m.add_child(folium.LatLngPopup())
             minimap = folium.plugins.MiniMap()
             m.add_child(minimap)
-            folium.TileLayer('Stamen Terrain', attribution='Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.').add_to(m)
-            folium.TileLayer('Stamen Toner', attribution='Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.').add_to(m)
-            folium.TileLayer('cartodbpositron', attribution='© OpenStreetMap contributors © CARTO').add_to(m)
-            folium.TileLayer('OpenStreetMap', attribution='© OpenStreetMap contributors').add_to(m)
+            folium.TileLayer('Stamen Terrain', attr='Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.').add_to(m)
+            folium.TileLayer('Stamen Toner', attr='Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.').add_to(m)
+            folium.TileLayer('cartodbpositron', attr='© OpenStreetMap contributors © CARTO').add_to(m)
+            folium.TileLayer('OpenStreetMap', attr='© OpenStreetMap contributors').add_to(m)
 
             # 锁定范围
             grid_geo_json = get_border(self.upper_right, self.lower_left)
