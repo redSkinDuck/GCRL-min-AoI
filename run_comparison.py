@@ -13,6 +13,7 @@ import sys
 import torch
 import gym
 
+from configs.config import set_env_dataset
 from envs import disable_render_order_check
 from envs.model.agent import Agent
 from method.explorer import Explorer
@@ -47,8 +48,10 @@ def _make_args(output_dir, vis_html=False, **kwargs):
     return args
 
 
-def _setup_env_and_policy(device, config_file, model_weights=None, policy_name=None, module_name=None):
-    """创建 env 并配置 policy，返回 (env, agent, explorer)。module_name 避免多 config 互相覆盖。"""
+def _setup_env_and_policy(device, config_file, model_weights=None, policy_name=None, module_name=None, dataset=None):
+    """创建 env 并配置 policy，返回 (env, agent, explorer)。dataset: Purdue|NCSU|KAIST；module_name 避免多 config 互相覆盖。"""
+    if dataset is not None:
+        set_env_dataset(dataset)
     name = module_name if module_name else 'config'
     spec = importlib.util.spec_from_file_location(name, config_file)
     if spec is None:
@@ -97,6 +100,8 @@ def main():
                         help='Greedy-Diffusion 权重路径，默认 model_dir/greedy_diffusion/best_val_greedy_diffusion.pth')
     parser.add_argument('--baselines', type=str, nargs='*', default=['stay', 'greedy_aoi', 'nearest_high_aoi'],
                         help='额外 rule-based baseline：stay, greedy_aoi, nearest_high_aoi；空则不加')
+    parser.add_argument('--dataset', type=str, default='Purdue',
+                        help='数据集：Purdue, NCSU, KAIST')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s',
@@ -104,6 +109,7 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     set_random_seeds(args.seed)
     device = torch.device('cuda:0' if args.gpu and torch.cuda.is_available() else 'cpu')
+    logging.info('Dataset: %s', args.dataset)
 
     run_args = _make_args(args.output_dir, vis_html=False)
 
@@ -124,7 +130,7 @@ def main():
     else:
         logging.info('Running Our Policy - Tree (%d episodes)...', args.n_episodes)
         env_our, agent_our, explorer_our = _setup_env_and_policy(
-            device, config_our, model_weights=weights_our)
+            device, config_our, model_weights=weights_our, dataset=args.dataset)
         list_our = []
         for _ in range(args.n_episodes):
             explorer_our.run_k_episodes(k=1, phase='test', args=run_args, plot_index=0)
@@ -144,7 +150,7 @@ def main():
         if args.compare_diffusion:
             logging.info('Running Our Policy - Diffusion (%d episodes)...', args.n_episodes)
             env_diff, agent_diff, explorer_diff = _setup_env_and_policy(
-                device, config_our, model_weights=weights_our)
+                device, config_our, model_weights=weights_our, dataset=args.dataset)
             policy_diff = getattr(explorer_diff.robot, 'policy', None)
             if policy_diff is not None and hasattr(policy_diff, 'enable_diffusion'):
                 policy_diff.enable_diffusion()
@@ -182,7 +188,7 @@ def main():
             else:
                 logging.info('Running Diffusion (Greedy-trained) (%d episodes)...', args.n_episodes)
                 env_gd, agent_gd, explorer_gd = _setup_env_and_policy(
-                    device, config_our, model_weights=weights_our)
+                    device, config_our, model_weights=weights_our, dataset=args.dataset)
                 policy_gd = getattr(explorer_gd.robot, 'policy', None)
                 if policy_gd is not None and hasattr(policy_gd, 'enable_diffusion'):
                     ckpt = {}
@@ -225,7 +231,7 @@ def main():
         logging.warning('Random config 不存在: %s，跳过 Random', args.random_config)
     else:
         logging.info('Running Random Policy (%d episodes)...', args.n_episodes)
-        env_rand, agent_rand, explorer_rand = _setup_env_and_policy(device, args.random_config)
+        env_rand, agent_rand, explorer_rand = _setup_env_and_policy(device, args.random_config, dataset=args.dataset)
         list_rand = []
         for _ in range(args.n_episodes):
             explorer_rand.run_k_episodes(k=1, phase='test', args=run_args, plot_index=0)
@@ -257,7 +263,7 @@ def main():
             continue
         logging.info('Running %s (%d episodes)...', display_name, args.n_episodes)
         env_bl, agent_bl, explorer_bl = _setup_env_and_policy(
-            device, config_path, module_name='config_baseline_%s' % bl)
+            device, config_path, module_name='config_baseline_%s' % bl, dataset=args.dataset)
         list_bl = []
         for _ in range(args.n_episodes):
             explorer_bl.run_k_episodes(k=1, phase='test', args=run_args, plot_index=0)

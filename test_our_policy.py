@@ -19,6 +19,7 @@ from method.visualize_metrics import (
 )
 from policies.policy_factory import policy_factory
 from envs.model.agent import Agent
+from configs.config import set_env_dataset
 
 
 def set_random_seeds(seed):
@@ -33,7 +34,10 @@ def set_random_seeds(seed):
 def main(args):
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
     set_random_seeds(args.randomseed)
-    args.output_dir=args.model_dir
+    args.output_dir = getattr(args, 'output_dir', None) or args.model_dir
+    if getattr(args, 'dataset', None):
+        set_env_dataset(args.dataset)
+        logging.info('Using dataset: %s', args.dataset)
 
     # configure logging and device
     level = logging.DEBUG if args.debug else logging.INFO
@@ -151,6 +155,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Parse configuration file')
     parser.add_argument('--config', type=str, default=None)
     parser.add_argument('-m', '--model_dir', type=str, default="logs/debug")
+    parser.add_argument('--output_dir', type=str, default=None,
+                        help='保存可视化结果的目录，默认与 model_dir 相同')
+    parser.add_argument('--dataset', type=str, default=None,
+                        help='评估数据集：Purdue, NCSU, KAIST；不指定则使用 config 默认')
     parser.add_argument('--phase', type=str, default='test')
     parser.add_argument('--debug', default=False, action='store_true')
     parser.add_argument('--gpu_id', type=str, default='1')
